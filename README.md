@@ -13,8 +13,9 @@ Tested on `Linux raspberrypi 4.1.13+ #826 PREEMPT Fri Nov 13 20:13:22 GMT 2015 a
 
 Connect keybus CLK to GPIO 24 and keybus DATA to GPIO 23. Remember
 that keybus is 12V where as Raspberry PI can only cope with 3.3V. You
-need some shield in between. Mine is based on configuring the GPIO as
-pull up and then pulling them down to GRDN when keybus is high.
+need some shield in between. For example, the shield shown below is based 
+on configuring the GPIO ports as pull up and then pulling them down to GRDN 
+when keybus is high.
 
 ![shield.png](shield.png)
 
@@ -23,7 +24,6 @@ pull up and then pulling them down to GRDN when keybus is high.
 If you want to use other pins or some other kind of shield, configure
 the values in the `dts` file accordingly. Then compile it and copy it
 to the boot directory.
-
 
 ```
 dtc -I dts -O dtb -o keybusdev-overlay.dtb keybusdev-overlay.dts
