@@ -1,17 +1,21 @@
 # keybusdev.ko
 
-A Linux Kernel Module to interact with DSC keybus protocol using GPIO on Raspberry PI
+A Linux Kernel Module for interacting with the DSC keybus protocol using GPIO
+on Linux.
 
 ## Features
 
-* exposes a /dev/keybus device for reading all the packets arriving from the alarm system
-* exposes a kernel object under /sys/keybus for reading the latest state of the alarm system and statistics
+* exposes a /dev/keybus device for reading all the packets arriving from the
+  alarm system
+* exposes a kernel object under /sys/keybus for reading the latest state of the
+  alarm system and statistics
 
-Tested on `Linux raspberrypi 4.1.13+ #826 PREEMPT Fri Nov 13 20:13:22 GMT 2015 armv6l GNU/Linux`
+Tested on Raspberry Pi B (Rev 2.1 UK) using `Linux raspberrypi 4.1.13+ #826 PREEMPT
+Fri Nov 13 20:13:22 GMT 2015 armv6l GNU/Linux`.
 
-## Usage:
+## Installation
 
-Connect keybus CLK to GPIO 24 and keybus DATA to GPIO 23. Remember
+Connect keybus DATA to GPIO 23 and keybus CLK to GPIO 24. Remember
 that keybus is 12V where as Raspberry PI can only cope with 3.3V. You
 need some shield in between. For example, the shield shown below is based 
 on configuring the GPIO ports as pull up and then pulling them down to GRDN 
@@ -19,32 +23,38 @@ when keybus is high.
 
 ![shield.png](shield.png)
 
-1. Configure, compile and install `keybusdev-overlay.dts`
+### Configure the pins
 
-If you want to use other pins or some other kind of shield, configure
-the values in the `dts` file accordingly. Then compile it and copy it
-to the boot directory.
+Use the provided Device Tree file (requires a kernel with Device Tree support)
+to configure the GPIO pins to match the way you connected keybus to your device. 
+
+This step is not mandatory if you have a shield that doesn't require a special
+setup for the GPIO pins (such as pull up/down). You can also replace this step
+by configuring the GPIO some other way (such as using the Linux GPIO subsystem).
+
+To use the provided `dts` file, compile it, install it to your overlays directory
+(usually under `/boot`) and reboot.
 
 ```
 dtc -I dts -O dtb -o keybusdev-overlay.dtb keybusdev-overlay.dts
 cp keybusdev-overlay.dtb /boot/overlays
-
+shutdown -r now
 ```
 
-2. Boot the box
-
-Boot the box so that the overlays take effect.
-
-3. compile and install the kernel module
+### Compile and install the kernel module
 
 ```
 make
 insmod keybusdev.ko 
 ```
 
+You can use the module parameters `active_low` (default is 0), `gpio_data`
+(default 23) and `gpio_clk` (default 24) to specify your configuration.
+
 ## The /sys/keybus/ directory
 
-You can use the files under `/sys/keybus` to retrieve statistics and the latest keybus device status.
+You can use the files under `/sys/keybus` to retrieve statistics and the latest
+keybus device status.
 
 For example:
 
