@@ -192,15 +192,17 @@ static int parse_A5(char *packet, char *buffer) {
 		sprintf(extra, " disarmed by %02d (%s)", userId, 
 			userId >= 40 ? "master" : "user");
 	    } else if (action == 0xe7) {
-		sprintf(extra, " error (possibly battery)");
+		extra = " error (possibly battery)";
 	    } else if (action == 0xef) {
-		sprintf(extra, " error resolved");
+		extra = " error resolved";
 	    }
 	} else if (flag == 2) {
-	    if (action == 0x98) {
-		sprintf(extra, " armed (stay)");
+	    if (action == 0x68) {
+		extra = " PGM2 (*72)";
+	    } else if (action == 0x98) {
+		extra = " armed (stay)";
 	    } else if (action == 0x99) {
-		sprintf(extra, " armed (away)");
+		extra = " armed (away)";
 	    }
 	}
     }
