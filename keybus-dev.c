@@ -112,6 +112,16 @@ static ssize_t keybus_status_show(struct kobject *kobj, struct kobj_attribute *a
     return ret;
 }
 
+/*
+static ssize_t keybus_status_raw_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) {
+    int ret = parse_status_flags(keybus_status, buf);
+
+    ret += sprintf(buf + ret, "\n");
+    
+    return ret;
+}
+*/
+
 static ssize_t crc_errors_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) {
     return sprintf(buf, "%u\n", crc_errors);
 }
@@ -120,6 +130,7 @@ static struct kobj_attribute ts_last_attr  = __ATTR_RO(ts_last);
 static struct kobj_attribute packet_count_attr = __ATTR_RO(packet_count);
 static struct kobj_attribute packet_buffer_count_attr = __ATTR_RO(packet_buffer_count);
 static struct kobj_attribute keybus_status_attr  = __ATTR_RO(keybus_status);
+//static struct kobj_attribute keybus_status_raw_attr  = __ATTR_RO(keybus_status_raw);
 static struct kobj_attribute crc_errors_attr  = __ATTR_RO(crc_errors);
 
 
@@ -128,6 +139,7 @@ static struct attribute *keybus_attrs[] = {
     &packet_count_attr.attr,
     &packet_buffer_count_attr.attr,
     &keybus_status_attr.attr,
+    //    &keybus_status_raw.attr.attr,
     &crc_errors_attr.attr,
     NULL,
 };
@@ -381,8 +393,6 @@ static int read_in_packet(char* buffer) {
  * @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int dev_open(struct inode *inodep, struct file *filep){
-    static int i = 1;
-
     if (!mutex_trylock(&keybus_mutex)) {
         printk(KERN_ALERT "%s: device in use by another process", DEVICE_NAME);
         return -EBUSY;

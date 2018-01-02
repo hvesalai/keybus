@@ -1,14 +1,24 @@
 #include <linux/kernel.h>
 #include "keybus-protocol.h"
 
+
+// Developed against Power832 from circa year 2000
+
 #define PACKET_BIT(nr, packet) ((packet[((nr) >> 3)] & (1 << (7 - ((nr) & 0x7)))) != 0)
 
 static char *STATUS_FLAGS[8] = { "Backlight", "Fire", "Program", "Error", "Bypass", "Memory", "Armed", "Ready" };
-
+/*
+static char *TROUBLE_CONDITIONS[8] = { "Service Required", "AC Failure", "Telephone Line Fault", "Filure to Communicate",
+				       "Zone Fault", "Zone Tamper", "Loss of System Time" };
+static char *SERVICE_CONDITIONS[8] = { "Low battery", "Bell Circuit", "System Trouble", "System Tamper",
+				       "Module Supervision", "RF Jam Detected", "PC5204 Low Battery", "PC5204 AC Failure"}; 
+*/
 static char *SENSORS1[8] = {"Sensor8", "Sensor7", "Sensor6", "Sensor5", "Sensor4", "Sensor3", "Sensor2", "Sensor1"};
- static char *SENSORS2[8] = {"Sensor16", "Sensor15", "Sensor14", "Sensor13", "Sensor12", "Sensor11", "Sensor10", "Sensor9",};
+static char *SENSORS2[8] = {"Sensor16", "Sensor15", "Sensor14", "Sensor13", "Sensor12", "Sensor11", "Sensor10", "Sensor9",};
 static char *SENSORS3[8] = {"Sensor24", "Sensor23", "Sensor22", "Sensor21", "Sensor20", "Sensor19", "Sensor18", "Sensor17",};
 static char *SENSORS4[8] = {"Sensor32", "Sensor31", "Sensor30", "Sensor29", "Sensor28", "Sensor27", "Sensor26", "Sensor25"};
+
+// TODO: door chime : press *4 to turn on , # off
 
 static char *COMMANDS[256] = {
     NULL, NULL, NULL, NULL, NULL, "STATUS", NULL, NULL,         NULL, NULL, "PROGRAM MODE", NULL, NULL, NULL, NULL, NULL,
@@ -108,9 +118,10 @@ int parse_05(char *packet, char *buffer) {
 }
 
 static int parse_27_or_2D(char *packet, char *buffer, char **sensors) {
-    // 00100111 0 10001010 00000100 10000001 11000111 00000000 11111101 0 // stay in
-    // 00100111 0 10000001 00000001 10000001 11000111 00000100 11110101 0
-    // CMD----- S STATUS--                            SENSORS--- CRC----- S
+    // 00100111 0 10010001 00000010 10010001 11000111 00001100 00011110 0 // backlight, error, ready
+    // 00100111 0 10001010 00000100 10000001 11000111 00000000 11111101 0 // backlight, bypass, armed (stay in)
+    // 00100111 0 10000001 00000001 10000001 11000111 00000100 11110101 0 // backlight, ready
+    // CMD----- S STATUS--                            SENSORS- CRC----- S
     int command = packet[0];
     int ret = sprintf(buffer, "%02X [%s]: ", command, COMMANDS[command]);
     int sensor_bits = packet_bits(41, packet, 8);
@@ -133,47 +144,65 @@ static int parse_27_or_2D(char *packet, char *buffer, char **sensors) {
  * which is expected to be long enough
  */
 static int parse_A5(char *packet, char *buffer) {
-    // 10100101 0 00010110 01001110 00101010 10010010 01101000 00000000 00101101 1 // fire sonsor reset with command *72
+    // 10100101 0 00011000 00000100 01010010 10010000 00000000 00000000 10100011 0 // basic timestamp
+    // 10100101 0 00011000 01000100 01010010 01000000 10101101 11111111 00111111 0 // arm by user 21
+    // 10100101 0 00011000 01000100 01010100 00001100 10111001 11111111 00011001 0 // arm by user 33
+    // 10100101 0 00010110 01001110 00101001 11011000 10111011 11111111 11000100 0 // arm by user 40
+    // 10100101 0 00010110 01001110 00101001 11011010 10011011 00000000 10100111 0 // arm, away
+    // 10100101 0 00010110 01001110 00101000 00101010 10011010 00000000 11110101 1 // arm, stay
+    // 10100101 0 00010110 01001110 00101010 10010010 01101000 00000000 00101101 1 // fire sensor reset with command *72
+    // 10100101 0 00011000 01000100 01010010 01000100 11010100 11111111 01101010 0 // disarm by user 21
+    // 10100101 0 00011000 01000100 01010100 00010100 11100000 11111111 01001000 0 // disarm by user 33
+    // 10100101 0 00010110 01001110 00101000 00101100 11100010 11111111 00111110 0 // disarm by user 40
+    // 10100101 0 00011000 01000100 01010011 00001100 11100111 11111111 01000110 0 // battery failure
+    // 10100101 0 00011000 01000100 01010011 00100000 11101111 11111111 01100010 0 // battery reset
 
-    // 10100101 0 00010110 01001110 00101001 11011000 10111011 11111111 11000100 0 // arm, away 1
-    // 10100101 0 00010110 01001110 00101001 11011010 10011011 00000000 10100111 0 // arm, away 2
+    // Possible alternatives
+    // CMD----- S Y1--Y2-- EEMMMMDD DDDHHHHH MMMMMMFF ACTION--          CRC----- S 
+    // CMD----- S Y1--Y2-- 00MMMMDD DDDHHHHH MMMMMM                     CRC----- S // timestamp
 
-    // 10100101 1 00010110 01001110 00101000 00101000 10111111 11111111 00010111 0 // arm, stay in 1
-    // 10100101 0 00010110 01001110 00101000 00101010 10011010 00000000 11110101 1 // arm, stay in 2
-
-    // 10100101 0 00010110 01001110 00101000 00101100 11100010 11111111 00111110 0 // disarm
-    // 10100101 0 00010110 01001110 00010101 10110000 00000000 00000000 11001110 0
-    // CMD----- S Y1--Y2-- MMMMDDDD DHHHHHMM MMMM     ADUSER--          CRC----- S
-
-    int command = packet[0];
-    int arm = packet_bits(41, packet, 2);
+    int command = packet[0]; // CMD-----
+    int event = packet_bits(17, packet, 2); // PP
+    int flag = packet_bits(39, packet, 2); // FF
+    int action = packet_bits(41, packet, 8); // ACTION
     int userId;
-    char extra[32]; // 32 chars is enough for any message
-    char* action;
+    char extra[32] = {0}; // 32 chars is enough for any message
 
-    switch (arm) {
-    case 0x01:
-        action = "unknown";
-        break;
-    case 0x02:
-        action = "armed";
-        break;
-    case 0x03:
-        action = "disarmed";
-        break;
-    default:
-        action = NULL;
-    }
-
-    if (arm == 0x03) {
-        userId = packet_bits(43, packet, 6) + 1;
-
-        if (userId > 34) userId += 5; // masters 40, 41, 42
-
-        sprintf(extra, " %s by %02d (%s)", action, userId, 
-                userId >= 40 ? "master" : "user");
-    } else {
-        extra[0] = '\0';
+    // Users:
+    // 40: One master code
+    // 01-32: 32 general access codes
+    // 33-34: Two duress codes
+    // 41-42: Two supervisor codes
+        
+    if (event > 0) {
+	if (flag == 0) {
+	    // TODO: action in (0x00 - 0x98, 0xbf, 0xe5, 0xe6, 0xe8-0xee, 0xf0-0xff)
+	    if (action >= 0x99 && action < 0xbf) {
+		userId = action - 0x99 + 1;
+	    
+		if (userId > 34) userId += 5; // masters 40, supervisor 41, 42
+	
+		sprintf(extra, " arming by %02d (%s)", userId, 
+			userId >= 40 ? "master" : "user");
+	    } else if (action >= 0xc0 && action < 0xe5) {
+		userId = action - 0xc0 + 1;
+	    
+		if (userId > 34) userId += 5; // masters 40, supervisor 41, 42
+	
+		sprintf(extra, " disarmed by %02d (%s)", userId, 
+			userId >= 40 ? "master" : "user");
+	    } else if (action == 0xe7) {
+		sprintf(extra, " error (possibly battery)");
+	    } else if (action == 0xef) {
+		sprintf(extra, " error resolved");
+	    }
+	} else if (flag == 2) {
+	    if (action == 0x98) {
+		sprintf(extra, " armed (stay)");
+	    } else if (action == 0x99) {
+		sprintf(extra, " armed (away)");
+	    }
+	}
     }
 
     return sprintf(buffer,
@@ -186,7 +215,7 @@ static int parse_A5(char *packet, char *buffer) {
                    packet_bits(23, packet, 5), // dd
                    packet_bits(28, packet, 5), // hh
                    packet_bits(33, packet, 6), // mm
-                   extra // armed, disarmed messages
+                   extra // extra message (armed, disarmed, etc)
                    );
 }
 
@@ -248,6 +277,7 @@ int is_interesting_packet(char *packet) {
     case 0x63: // MEM 2
         // Not interesting if all empty
         // 01100011 0 00000000 00000000 00000000 00000000 00000000 01100011 0
+	// 01011101 0 00000010 00000000 00000000 00000000 00000000 01011111 0
         for (i = 1, ret = 0; i < 6; i++) {
             ret |= packet_byte(i, packet);
         }
