@@ -20,7 +20,7 @@
 #include <linux/circ_buf.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 #include <asm/bitops.h>
 #include <linux/platform_data/bcm2708.h>
 

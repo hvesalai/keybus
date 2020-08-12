@@ -1,6 +1,6 @@
 #include <linux/kernel.h>
 #include "keybus-protocol.h"
-
+#include <linux/string.h>
 
 // Developed against Power832 from circa year 2000
 
@@ -192,17 +192,17 @@ static int parse_A5(char *packet, char *buffer) {
 		sprintf(extra, " disarmed by %02d (%s)", userId, 
 			userId >= 40 ? "master" : "user");
 	    } else if (action == 0xe7) {
-		extra = " error (possibly battery)";
+		strcpy(extra, " error (possibly battery)");
 	    } else if (action == 0xef) {
-		extra = " error resolved";
+		strcpy(extra, " error resolved");
 	    }
 	} else if (flag == 2) {
 	    if (action == 0x68) {
-		extra = " PGM2 (*72)";
+		strcpy(extra, " PGM2 (*72)");
 	    } else if (action == 0x98) {
-		extra = " armed (stay)";
+		strcpy(extra, " armed (stay)");
 	    } else if (action == 0x99) {
-		extra = " armed (away)";
+		strcpy(extra, " armed (away)");
 	    }
 	}
     }
