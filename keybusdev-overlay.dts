@@ -2,7 +2,7 @@
 /plugin/;
 
 / {
-    compatible = "brcm,bcm2708";
+    compatible = "brcm,bcm2708,bcm2710,bcm2835";
 
     fragment@0 {
         target = <&gpio>;
