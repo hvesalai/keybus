@@ -10,8 +10,11 @@ on Linux.
 * exposes a kernel object under /sys/keybus for reading the latest state of the
   alarm system and statistics
 
-Tested on Raspberry Pi B (Rev 2.1 UK) using `Linux raspberrypi 4.1.13+ #826 PREEMPT
+Tested on:
+- Raspberry Pi B (Rev 2.1 UK) using `Linux raspberrypi 4.1.13+ #826 PREEMPT 
 Fri Nov 13 20:13:22 GMT 2015 armv6l GNU/Linux`.
+- Raspberry Pi 3 Model B Rev 1.2 (Pi 3 B+) using `Linux retropie 4.14.98-v7+ #1200 SMP 
+Tue Feb 12 20:27:48 GMT 2019 armv7l GNU/Linux`.
 
 ## Installation
 
@@ -38,6 +41,20 @@ To use the provided `dts` file, compile it, install it to your overlays director
 ```
 dtc -I dts -O dtb -o keybusdev-overlay.dtb keybusdev-overlay.dts
 cp keybusdev-overlay.dtb /boot/overlays
+shutdown -r now
+```
+
+**For configuring the Device Tree file on Raspberry Pi 3 B+.**
+
+```
+dtc -I dts -O dtb -o keybusdev-overlay.dtbo keybusdev-overlay.dts
+cp keybusdev-overlay.dtbo /boot/overlays
+```
+
+
+Edit the `/boot/config.txt` file and add/modify `dtoverlay=` line as follows: `dtoverlay=keybusdev-overlay`
+
+```
 shutdown -r now
 ```
 
